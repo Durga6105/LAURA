@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAURA — Legal AI Understanding & Risk Analyzer</title>
+
+<style>
+:root{
+    --bg:#020714;
+    --bg-main:#050a18;
+    --sidebar:#020917;
+    --panel:#071226;
+    --panel-2:#0a1630;
+    --panel-3:#0c1934;
+    --border:#1a3762;
+    --border-soft:#132b4d;
+    --text:#f3f7ff;
+    --muted:#91a1bb;
+    --muted-2:#6e7e9b;
+    --cyan:#1ed9ff;
+    --cyan-dark:#087db5;
+    --purple:#8c49ff;
+    --green:#13d58a;
+    --red:#ff4d64;
+    --orange:#ffae18;
+    --shadow:0 24px 70px rgba(0,0,0,.35);
+}
+
+html[data-theme="light"]{
+    --bg:#eef3fa;
+    --bg-main:#f5f8fd;
+    --sidebar:#f8fbff;
+    --panel:#ffffff;
+    --panel-2:#f5f8ff;
+    --panel-3:#edf3fc;
+    --border:#cbd9eb;
+    --border-soft:#dbe5f2;
+    --text:#17233a;
+    --muted:#5f708c;
+    --muted-2:#7787a0;
+    --cyan:#079acb;
+    --cyan-dark:#0877a8;
+    --purple:#6940d9;
+    --green:#079f6b;
+    --red:#d92f49;
+    --orange:#d88900;
+    --shadow:0 20px 55px rgba(47,72,108,.12);
+}
+
+*{box-sizing:border-box}
+
+html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+
+body{
+    color:var(--text);
+    background:
+        radial-gradient(circle at 80% 0%,rgba(113,55,255,.10),transparent 32%),
+        radial-gradient(circle at 18% 18%,rgba(0,184,255,.08),transparent 28%),
+        var(--bg);
+    transition:background .25s ease,color .25s ease;
+}
+
+button,input,textarea{font:inherit}
+
+button{cursor:pointer}
+
+.app{
+    display:grid;
+    grid-template-columns:286px minmax(0,1fr);
+    min-height:100vh;
+}
+
+.app.sidebar-collapsed{
+    grid-template-columns:78px minmax(0,1fr);
+}
+
+.sidebar{
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+    padding:28px 24px 24px;
+    background:linear-gradient(180deg,var(--sidebar),var(--bg));
+    border-right:1px solid var(--border);
+    transition:all .25s ease;
+    z-index:20;
+}
+
+.app.sidebar-collapsed .sidebar{
+    padding:20px 15px;
+}
+
+.brand{
+    position:relative;
+    padding:18px 3px 25px;
+    border-bottom:1px solid var(--border-soft);
+}
+
+.brand-logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.logo-mark{
+    width:43px;
+    height:43px;
+    object-fit:contain;
+}
+
+.brand-name{
+    font-size:29px;
+    font-weight:850;
+    letter-spacing:-.04em;
+}
+
+.brand-subtitle{
+    margin:8px 0 0 55px;
+    color:var(--cyan);
+    font-size:12px;
+    line-height:1.45;
+    max-width:150px;
+}
+
+.collapse-top{
+    position:absolute;
+    right:0;
+    top:-4px;
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--text);
+    font-size:22px;
+}
+
+.progress-title{
+    margin:29px 0 20px;
+    color:var(--muted);
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:.08em;
+}
+
+.progress{
+    position:relative;
+}
+
+.progress:before{
+    content:"";
+    position:absolute;
+    left:20px;
+    top:22px;
+    bottom:30px;
+    width:2px;
+    background:linear-gradient(var(--cyan),var(--purple),var(--border));
+    opacity:.75;
+}
+
+.step{
+    position:relative;
+    display:grid;
+    grid-template-columns:43px 1fr 22px;
+    gap:7px;
+    min-height:68px;
+    align-items:start;
+}
+
+.step-dot{
+    position:relative;
+    z-index:2;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    border:1px solid var(--border);
+    background:var(--sidebar);
+    color:var(--muted);
+    font-size:16px;
+}
+
+.step.completed .step-dot{
+    border-color:var(--cyan);
+    color:var(--cyan);
+    box-shadow:0 0 14px rgba(30,217,255,.17);
+}
+
+.step.active .step-dot{
+    border-color:var(--cyan);
+    color:var(--cyan);
+    box-shadow:0 0 0 4px rgba(30,217,255,.08),0 0 24px rgba(30,217,255,.25);
+}
+
+.step.active .step-dot:after{
+    content:"";
+    position:absolute;
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 12px var(--cyan);
+}
+
+.step-copy{padding-top:5px}
+
+.step-name{
+    font-size:14px;
+    font-weight:700;
+}
+
+.step-meta{
+    margin-top:5px;
+    color:var(--muted-2);
+    font-size:11px;
+}
+
+.step-status{
+    padding-top:8px;
+    color:var(--green);
+    font-size:15px;
+}
+
+.rulebook{
+    margin-top:12px;
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--panel);
+}
+
+.rulebook-title{font-size:13px;font-weight:750}
+.rulebook-meta{margin-top:4px;color:var(--muted-2);font-size:11px}
+
+.collapse-button{
+    width:100%;
+    margin-top:18px;
+    padding:11px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--text);
+}
+
+.app.sidebar-collapsed .brand-subtitle,
+.app.sidebar-collapsed .progress-title,
+.app.sidebar-collapsed .step-copy,
+.app.sidebar-collapsed .step-status,
+.app.sidebar-collapsed .rulebook,
+.app.sidebar-collapsed .collapse-button span{
+    display:none;
+}
+
+.app.sidebar-collapsed .brand-logo{
+    justify-content:center;
+}
+
+.app.sidebar-collapsed .brand-name{display:none}
+.app.sidebar-collapsed .progress:before{left:22px}
+.app.sidebar-collapsed .step{grid-template-columns:1fr}
+.app.sidebar-collapsed .step-dot{margin:auto}
+
+.main{
+    min-width:0;
+    padding:28px 24px 70px;
+}
+
+.topbar{
+    height:26px;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:12px;
+}
+
+.theme-toggle{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:7px 13px;
+    background:var(--panel);
+    color:var(--text);
+    font-size:12px;
+}
+
+.hero{
+    position:relative;
+    min-height:290px;
+    margin-top:4px;
+    overflow:hidden;
+    display:grid;
+    grid-template-columns:42% 58%;
+    align-items:center;
+    border-radius:12px;
+    background:
+        radial-gradient(circle at 72% 48%,rgba(0,179,255,.09),transparent 32%),
+        linear-gradient(110deg,rgba(4,16,37,.85),rgba(4,8,22,.25));
+}
+
+html[data-theme="light"] .hero{
+    background:linear-gradient(110deg,#f7fbff,#edf3fc);
+}
+
+.hero-copy{
+    position:relative;
+    z-index:2;
+    padding:30px 10px 25px 26px;
+}
+
+.greeting{
+    font-size:28px;
+    font-weight:800;
+    background:linear-gradient(90deg,#b46cff,#7ab5ff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+}
+
+.hero-name{
+    margin-top:5px;
+    font-size:36px;
+    font-weight:850;
+    letter-spacing:-.04em;
+    background:linear-gradient(90deg,var(--cyan),#9c72ff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+}
+
+.welcome{
+    margin-top:15px;
+    font-size:23px;
+}
+
+.welcome strong{color:var(--cyan)}
+
+.description{
+    margin-top:13px;
+    max-width:480px;
+    color:var(--muted);
+    line-height:1.55;
+    font-size:15px;
+}
+
+.hero-image-wrap{
+    height:290px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.hero-image{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    object-position:center;
+    display:block;
+    filter:drop-shadow(0 20px 35px rgba(0,0,0,.25));
+}
+
+.section{
+    margin-top:14px;
+    padding:13px 15px 15px;
+    border:1px solid var(--border-soft);
+    border-radius:11px;
+    background:linear-gradient(135deg,rgba(9,23,48,.9),rgba(5,14,31,.88));
+}
+
+html[data-theme="light"] .section{
+    background:rgba(255,255,255,.9);
+}
+
+.section-title{
+    margin:0 0 12px;
+    font-size:17px;
+    letter-spacing:-.015em;
+}
+
+.upload-layout{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:34px;
+}
+
+.dropzone{
+    min-height:100px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    border:1px dashed #5c45bd;
+    border-radius:8px;
+    background:rgba(41,35,91,.15);
+    color:var(--muted);
+}
+
+.cloud{font-size:28px;color:var(--purple)}
+.drop-text{font-size:13px;margin-top:5px}
+.drop-or{font-size:11px;color:var(--muted-2)}
+.browse{
+    margin-top:5px;
+    padding:8px 18px;
+    border:0;
+    border-radius:6px;
+    background:linear-gradient(100deg,#5032c5,#4c26a6);
+    color:#fff;
+    font-size:12px;
+}
+
+.uploaded{
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:rgba(12,28,56,.65);
+}
+
+.uploaded-label{font-size:13px;font-weight:700}
+.uploaded-row{
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.file-icon{font-size:27px}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{margin-top:4px;color:var(--muted-2);font-size:10px}
+
+.badge{
+    padding:5px 9px;
+    border:1px solid rgba(19,213,138,.45);
+    border-radius:999px;
+    color:var(--green);
+    font-size:10px;
+}
+
+.change{
+    padding:7px 12px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:var(--panel);
+    color:var(--text);
+    font-size:11px;
+}
+
+.support{
+    margin-top:7px;
+    text-align:center;
+    color:var(--muted-2);
+    font-size:10px;
+}
+
+.analyze-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:10px;
+}
+
+.analyze{
+    padding:9px 17px;
+    border:0;
+    border-radius:7px;
+    background:linear-gradient(100deg,#176be5,#7431dd);
+    color:#fff;
+    font-size:12px;
+    font-weight:750;
+}
+
+.analyze:disabled{opacity:.45;cursor:not-allowed}
+
+.status{
+    color:var(--muted);
+    font-size:11px;
+}
+
+.summary-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:8px;
+}
+
+.summary-card{
+    min-height:68px;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:linear-gradient(135deg,rgba(21,28,66,.55),rgba(9,17,36,.75));
+}
+
+.summary-label{color:#b1bad0;font-size:11px}
+.summary-value{margin-top:4px;font-size:21px;font-weight:820}
+.summary-value.red{color:var(--red)}
+.summary-value.orange{color:var(--orange)}
+.summary-value.green{color:var(--green)}
+.summary-value.purple{color:var(--purple)}
+
+.corrections-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    overflow:hidden;
+    border:1px solid var(--border);
+    border-radius:7px;
+}
+
+.corrections-table th,
+.corrections-table td{
+    padding:10px;
+    border-right:1px solid var(--border-soft);
+    border-bottom:1px solid var(--border-soft);
+    text-align:left;
+    font-size:11px;
+    vertical-align:top;
+}
+
+.corrections-table th{
+    color:#b6c1d5;
+    font-weight:650;
+    background:rgba(11,24,48,.75);
+}
+
+.corrections-table td{color:var(--muted)}
+.corrections-table tr:last-child td{border-bottom:0}
+.corrections-table th:last-child,
+.corrections-table td:last-child{border-right:0}
+
+.risk-badge{
+    display:inline-block;
+    padding:5px 8px;
+    border-radius:7px;
+    border:1px solid rgba(255,77,100,.5);
+    color:var(--red);
+    background:rgba(255,77,100,.08);
+    font-size:10px;
+}
+
+.view-button{
+    padding:7px 12px;
+    border:1px solid var(--purple);
+    border-radius:6px;
+    background:transparent;
+    color:#b18aff;
+    font-size:10px;
+}
+
+.download-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.download{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:13px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:rgba(8,23,48,.72);
+}
+
+.download-icon{
+    font-size:26px;
+    color:var(--cyan);
+}
+
+.download-info{flex:1}
+.download-title{font-size:13px;font-weight:720}
+.download-desc{margin-top:4px;color:var(--muted-2);font-size:10px}
+
+.download-btn{
+    padding:8px 14px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:var(--panel);
+    color:var(--text);
+    font-size:11px;
+}
+
+.ask{
+    display:grid;
+    grid-template-columns:80px 1fr;
+    gap:12px;
+    align-items:center;
+}
+
+.avatar{
+    width:70px;
+    height:70px;
+    object-fit:cover;
+    border-radius:50%;
+    border:1px solid #435da4;
+    background:var(--panel);
+}
+
+.question-row{
+    display:flex;
+    gap:10px;
+}
+
+.question{
+    flex:1;
+    min-width:0;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:var(--panel);
+    color:var(--text);
+    outline:none;
+}
+
+.question:focus{border-color:var(--purple)}
+
+.ask-button{
+    padding:0 24px;
+    border:0;
+    border-radius:7px;
+    background:linear-gradient(100deg,#4b2ac8,#6e28d9);
+    color:#fff;
+    font-weight:700;
+}
+
+.examples{
+    margin-top:6px;
+    color:var(--muted-2);
+    font-size:10px;
+}
+
+.answer{
+    display:none;
+    margin-top:10px;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:var(--panel);
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.6;
+    white-space:pre-wrap;
+}
+
+.answer.show{display:block}
+
+.hidden{display:none!important}
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:100;
+    padding:12px 16px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--text);
+    box-shadow:var(--shadow);
+    opacity:0;
+    transform:translateY(12px);
+    pointer-events:none;
+    transition:.2s;
+}
+
+.toast.show{opacity:1;transform:none}
+.toast.error{border-color:var(--red)}
+
+@media(max-width:1050px){
+    .app{grid-template-columns:250px 1fr}
+    .hero{grid-template-columns:1fr 1fr}
+    .summary-grid{grid-template-columns:repeat(3,1fr)}
+}
+
+@media(max-width:800px){
+    .app,.app.sidebar-collapsed{display:block}
+    .sidebar{position:relative;height:auto}
+    .hero{grid-template-columns:1fr}
+    .hero-image-wrap{order:-1}
+    .upload-layout,.download-grid{grid-template-columns:1fr}
+    .summary-grid{grid-template-columns:repeat(2,1fr)}
+    .corrections-table{display:block;overflow-x:auto}
+}
+
+@media(max-width:540px){
+    .main{padding:16px}
+    .summary-grid{grid-template-columns:1fr}
+    .ask{grid-template-columns:1fr}
+    .question-row{flex-direction:column}
+    .ask-button{padding:11px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app" id="app">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <button class="collapse-top" id="collapseTop" aria-label="Collapse sidebar">‹‹</button>
+
+            <div class="brand-logo">
+                <img src="../assets/laura.png" class="logo-mark" alt="LAURA">
+                <div class="brand-name">LAURA</div>
+            </div>
+
+            <div class="brand-subtitle">
+                Legal AI Understanding &amp; Risk Analyzer
+            </div>
+        </div>
+
+        <div class="progress-title">ANALYSIS PROGRESS</div>
+
+        <div class="progress" id="progress"></div>
+
+        <div class="rulebook">
+            <div class="rulebook-title">📖 Rule Book</div>
+            <div class="rulebook-meta">v2.4 • 245 Rules</div>
+        </div>
+
+        <button class="collapse-button" id="collapseButton">
+            ‹‹ <span>Collapse Sidebar</span>
+        </button>
+
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+            <button class="theme-toggle" id="themeToggle">
+                <span id="themeIcon">☾</span>
+                <span id="themeText">Dark Mode</span>
+            </button>
+        </div>
+
+        <section class="hero">
+
+            <div class="hero-copy">
+                <div class="greeting" id="greeting">Good Evening,</div>
+                <div class="hero-name">Peddimeni Durga Prasad</div>
+
+                <div class="welcome">
+                    Welcome to <strong>LAURA</strong> ✦
+                </div>
+
+                <div class="description">
+                    Your Legal AI Assistant for Smarter Contracts
+                    and Lower Risks.
+                </div>
+            </div>
+
+            <div class="hero-image-wrap">
+                <img
+                    src="../assets/laura.png"
+                    class="hero-image"
+                    alt="LAURA AI assistant"
+                    id="heroImage"
+                >
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <h2 class="section-title">1. Upload NDA</h2>
+
+            <div class="upload-layout">
+
+                <div>
+                    <div class="dropzone" id="dropzone">
+                        <div class="cloud">☁</div>
+                        <div class="drop-text">Drag &amp; drop your NDA file here</div>
+                        <div class="drop-or">or</div>
+
+                        <button class="browse" id="browseButton">
+                            Browse Files
+                        </button>
+                    </div>
+
+                    <div class="support">
+                        Supported formats: PDF, DOCX &nbsp; | &nbsp; Max size: 200MB
+                    </div>
+
+                    <input
+                        type="file"
+                        id="fileInput"
+                        accept=".pdf,.docx"
+                        hidden
+                    >
+
+                    <div class="analyze-row">
+                        <button class="analyze" id="analyzeButton" disabled>
+                            ✦ Analyze NDA
+                        </button>
+                        <span class="status" id="analysisStatus">
+                            Upload an NDA to begin.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="uploaded">
+
+                    <div class="uploaded-label">Uploaded File</div>
+
+                    <div class="uploaded-row">
+
+                        <div class="file-icon">📄</div>
+
+                        <div class="file-info">
+                            <div class="file-name" id="fileName">
+                                No file selected
+                            </div>
+                            <div class="file-meta" id="fileMeta">
+                                PDF / DOCX
+                            </div>
+                        </div>
+
+                        <div class="badge hidden" id="uploadedBadge">
+                            ✓ Uploaded
+                        </div>
+
+                        <button class="change" id="changeButton">
+                            Change File
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <h2 class="section-title">2. Analysis Summary</h2>
+
+            <div class="summary-grid">
+
+                <div class="summary-card">
+                    <div class="summary-label">📄 Total Clauses</div>
+                    <div class="summary-value" id="totalClauses">—</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-label">⚠ High Risk</div>
+                    <div class="summary-value red" id="highRisk">—</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-label">! Medium Risk</div>
+                    <div class="summary-value orange" id="mediumRisk">—</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-label">✓ Low Risk</div>
+                    <div class="summary-value green" id="lowRisk">—</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-label">♢ Overall Risk</div>
+                    <div class="summary-value purple" id="overallRisk">—</div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <h2 class="section-title">3. Key Corrections (Preview)</h2>
+
+            <table class="corrections-table">
+                <thead>
+                    <tr>
+                        <th>Clause ID</th>
+                        <th>Original Clause (Snippet)</th>
+                        <th>Issue</th>
+                        <th>Risk</th>
+                        <th>Correction Made</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="correctionsBody">
+                    <tr>
+                        <td>—</td>
+                        <td>Analysis results will appear here.</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>
+                            <button class="view-button">View All Corrections</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </section>
+
+        <section class="section">
+
+            <h2 class="section-title">4. Downloads</h2>
+
+            <div class="download-grid">
+
+                <div class="download">
+                    <div class="download-icon">▤</div>
+
+                    <div class="download-info">
+                        <div class="download-title">Download Corrected NDA</div>
+                        <div class="download-desc">
+                            Get the fully corrected NDA document
+                        </div>
+                    </div>
+
+                    <button class="download-btn" id="correctedButton">
+                        ↓
+                    </button>
+                </div>
+
+                <div class="download">
+                    <div class="download-icon" style="color:var(--purple)">▤</div>
+
+                    <div class="download-info">
+                        <div class="download-title">Download Analysis Report</div>
+                        <div class="download-desc">
+                            Comprehensive analysis with all findings
+                        </div>
+                    </div>
+
+                    <button class="download-btn" id="reportButton">
+                        ↓
+                    </button>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <h2 class="section-title">5. Ask LAURA</h2>
+
+            <div class="ask">
+
+                <div>
+                    <img
+                        src="../assets/laura.png"
+                        class="avatar"
+                        alt="LAURA"
+                    >
+                </div>
+
+                <div>
+
+                    <div class="question-row">
+
+                        <textarea
+                            class="question"
+                            id="question"
+                            rows="1"
+                            placeholder="Ask me anything about your NDA, analysis, risks, or corrections..."
+                        ></textarea>
+
+                        <button class="ask-button" id="askButton">
+                            Ask LAURA →
+                        </button>
+
+                    </div>
+
+                    <div class="examples">
+                        Examples: What changes did you make? &nbsp;•&nbsp;
+                        Why was this clause marked as high risk? &nbsp;•&nbsp;
+                        Show me all confidentiality related issues.
+                    </div>
+
+                    <div class="answer" id="answer"></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+const STAGES = [
+    ["start","Start","Analysis started","▶"],
+    ["nda_uploaded","NDA Uploaded","File received","▣"],
+    ["ingestion","Ingestion","Document processed","▤"],
+    ["rule_book","Rule Book Retrieval","Rules retrieved","⌘"],
+    ["validation","Validation","Rules evaluated","◇"],
+    ["correction","Correction","Required changes applied","✎"],
+    ["revalidation","Re-validation","Quality re-check","◇"],
+    ["report","Report Generation","Creating report","▤"],
+    ["completed","Completed","All done!","☆"]
+];
+
+let selectedFile = null;
+let analysisId = null;
+let pollTimer = null;
+
+/* -------------------------
+   Theme
+------------------------- */
+
+const app = document.getElementById("app");
+const themeToggle = document.getElementById("themeToggle");
+const themeIcon = document.getElementById("themeIcon");
+const themeText = document.getElementById("themeText");
+
+function setTheme(theme){
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("laura-theme", theme);
+
+    if(theme === "light"){
+        themeIcon.textContent = "☀";
+        themeText.textContent = "Light Mode";
+    }else{
+        themeIcon.textContent = "☾";
+        themeText.textContent = "Dark Mode";
+    }
+}
+
+setTheme(localStorage.getItem("laura-theme") || "dark");
+
+themeToggle.addEventListener("click",()=>{
+    const current = document.documentElement.dataset.theme;
+    setTheme(current === "dark" ? "light" : "dark");
+});
+
+/* -------------------------
+   Sidebar
+------------------------- */
+
+function setSidebarCollapsed(collapsed){
+    app.classList.toggle("sidebar-collapsed", collapsed);
+    localStorage.setItem("laura-sidebar-collapsed", collapsed ? "1" : "0");
+}
+
+setSidebarCollapsed(
+    localStorage.getItem("laura-sidebar-collapsed") === "1"
+);
+
+document.getElementById("collapseTop").addEventListener(
+    "click",
+    ()=>setSidebarCollapsed(!app.classList.contains("sidebar-collapsed"))
+);
+
+document.getElementById("collapseButton").addEventListener(
+    "click",
+    ()=>setSidebarCollapsed(!app.classList.contains("sidebar-collapsed"))
+);
+
+/* -------------------------
+   Greeting
+------------------------- */
+
+function updateGreeting(){
+    const hour = new Date().getHours();
+
+    let value = "Good Evening,";
+
+    if(hour >= 5 && hour < 12) value = "Good Morning,";
+    else if(hour >= 12 && hour < 17) value = "Good Afternoon,";
+    else if(hour >= 17 && hour < 22) value = "Good Evening,";
+    else value = "Good Night,";
+
+    document.getElementById("greeting").textContent = value;
+}
+
+updateGreeting();
+
+/* -------------------------
+   Progress
+------------------------- */
+
+const progress = document.getElementById("progress");
+
+function renderProgress(activeKey="start", completed=false){
+
+    const activeIndex = STAGES.findIndex(s=>s[0] === activeKey);
+
+    progress.innerHTML = "";
+
+    STAGES.forEach((stage,index)=>{
+
+        const [key,label,meta,icon] = stage;
+
+        const item = document.createElement("div");
+        item.className = "step";
+
+        if(completed || index < activeIndex)
+            item.classList.add("completed");
+
+        if(!completed && index === activeIndex)
+            item.classList.add("active");
+
+        const dot = document.createElement("div");
+        dot.className = "step-dot";
+        dot.textContent =
+            completed || index < activeIndex ? "✓" : icon;
+
+        const copy = document.createElement("div");
+        copy.className = "step-copy";
+
+        const name = document.createElement("div");
+        name.className = "step-name";
+        name.textContent = label;
+
+        const metaElement = document.createElement("div");
+        metaElement.className = "step-meta";
+        metaElement.textContent =
+            completed || index < activeIndex
+                ? "Completed"
+                : meta;
+
+        copy.append(name,metaElement);
+
+        const status = document.createElement("div");
+        status.className = "step-status";
+
+        if(completed || index < activeIndex)
+            status.textContent = "●";
+
+        item.append(dot,copy,status);
+        progress.appendChild(item);
+    });
+}
+
+renderProgress();
+
+/* -------------------------
+   Upload
+------------------------- */
+
+const fileInput = document.getElementById("fileInput");
+const browseButton = document.getElementById("browseButton");
+const changeButton = document.getElementById("changeButton");
+const dropzone = document.getElementById("dropzone");
+const analyzeButton = document.getElementById("analyzeButton");
+
+browseButton.addEventListener("click",e=>{
+    e.preventDefault();
+    fileInput.click();
+});
+
+changeButton.addEventListener("click",()=>{
+    fileInput.click();
+});
+
+dropzone.addEventListener("dragover",e=>{
+    e.preventDefault();
+    dropzone.style.borderColor = "var(--cyan)";
+});
+
+dropzone.addEventListener("dragleave",()=>{
+    dropzone.style.borderColor = "";
+});
+
+dropzone.addEventListener("drop",e=>{
+    e.preventDefault();
+    dropzone.style.borderColor = "";
+
+    if(e.dataTransfer.files.length){
+        acceptFile(e.dataTransfer.files[0]);
+    }
+});
+
+fileInput.addEventListener("change",()=>{
+    if(fileInput.files[0])
+        acceptFile(fileInput.files[0]);
+});
+
+function acceptFile(file){
+
+    const ext = file.name.split(".").pop().toLowerCase();
+
+    if(!["pdf","docx"].includes(ext)){
+        showToast("Only PDF and DOCX files are supported.",true);
+        return;
+    }
+
+    selectedFile = file;
+
+    document.getElementById("fileName").textContent =
+        file.name;
+
+    document.getElementById("fileMeta").textContent =
+        `${formatBytes(file.size)} • ${ext.toUpperCase()}`;
+
+    document.getElementById("uploadedBadge")
+        .classList.remove("hidden");
+
+    analyzeButton.disabled = false;
+
+    document.getElementById("analysisStatus").textContent =
+        "File ready for analysis.";
+
+    renderProgress("nda_uploaded");
+}
+
+function formatBytes(bytes){
+    if(bytes < 1024) return `${bytes} B`;
+    if(bytes < 1024*1024)
+        return `${(bytes/1024).toFixed(1)} KB`;
+
+    return `${(bytes/(1024*1024)).toFixed(1)} MB`;
+}
+
+/* -------------------------
+   Analysis
+------------------------- */
+
+analyzeButton.addEventListener("click",startAnalysis);
+
+async function startAnalysis(){
+
+    if(!selectedFile) return;
+
+    stopPolling();
+
+    analyzeButton.disabled = true;
+
+    renderProgress("nda_uploaded");
+
+    document.getElementById("analysisStatus").textContent =
+        "Starting LAURA analysis...";
+
+    const form = new FormData();
+    form.append("file",selectedFile);
+
+    try{
+
+        const response = await fetch(
+            `${API_BASE}/analysis/run`,
+            {
+                method:"POST",
+                body:form
+            }
+        );
+
+        const data = await readJson(response);
+
+        if(!response.ok)
+            throw new Error(data.detail || "Analysis failed.");
+
+        analysisId = data.analysis_id;
+
+        if(!analysisId){
+            throw new Error(
+                "The backend did not return an analysis ID."
+            );
+        }
+
+        document.getElementById("analysisStatus").textContent =
+            "Analysis running...";
+
+        // The backend already records the real workflow stage.
+        // Poll that status endpoint instead of faking progress.
+        await pollAnalysisStatus();
+
+    }catch(error){
+
+        stopPolling();
+        analyzeButton.disabled = false;
+
+        document.getElementById("analysisStatus").textContent =
+            error.message;
+
+        showToast(error.message,true);
+        console.error(error);
+    }
+}
+
+/* -------------------------
+   Live Analysis Status
+------------------------- */
+
+const STAGE_MAP = {
+    start: "start",
+    nda_uploaded: "nda_uploaded",
+    ingestion: "ingestion",
+    retrieval: "rule_book",
+    rule_book: "rule_book",
+    rule_book_retrieval: "rule_book",
+    validation: "validation",
+    correction: "correction",
+    revalidation: "revalidation",
+    report: "report",
+    report_generation: "report",
+    completed: "completed"
+};
+
+async function pollAnalysisStatus(){
+
+    if(!analysisId) return;
+
+    const response = await fetch(
+        `${API_BASE}/analysis/status/${analysisId}`,
+        {
+            method:"GET",
+            cache:"no-store",
+            headers:{
+                "Accept":"application/json"
+            }
+        }
+    );
+
+    const data = await readJson(response);
+
+    if(!response.ok){
+        throw new Error(
+            data.detail ||
+            "Unable to read analysis status."
+        );
+    }
+
+    const backendStage =
+        data.stage || "start";
+
+    const uiStage =
+        STAGE_MAP[backendStage] || backendStage;
+
+    const progressValue =
+        Number.isFinite(Number(data.progress))
+            ? Number(data.progress)
+            : null;
+
+    renderProgress(
+        uiStage,
+        data.status === "completed"
+    );
+
+    document.getElementById("analysisStatus").textContent =
+        data.message ||
+        `${formatStageName(backendStage)}...`;
+
+    if(progressValue !== null){
+        document.getElementById("analysisStatus").textContent +=
+            ` (${progressValue}%)`;
+    }
+
+    if(data.status === "completed"){
+
+        stopPolling();
+
+        const result = data.result;
+
+        if(!result){
+            throw new Error(
+                "Analysis completed, but no result was returned."
+            );
+        }
+
+        renderProgress("completed",true);
+        document.getElementById("analysisStatus").textContent =
+            "Analysis completed successfully.";
+
+        renderResult(result);
+        analyzeButton.disabled = false;
+        return;
+    }
+
+    if(data.status === "failed"){
+        stopPolling();
+        throw new Error(
+            data.message ||
+            "NDA analysis failed."
+        );
+    }
+
+    // Check again shortly. setTimeout avoids overlapping HTTP
+    // requests if one status request takes longer than expected.
+    pollTimer = setTimeout(
+        () => {
+            pollAnalysisStatus().catch(error => {
+                stopPolling();
+                analyzeButton.disabled = false;
+                document.getElementById("analysisStatus").textContent =
+                    error.message;
+                showToast(error.message,true);
+                console.error(error);
+            });
+        },
+        500
+    );
+}
+
+function stopPolling(){
+    if(pollTimer){
+        clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+}
+
+function formatStageName(stage){
+    return String(stage || "start")
+        .replaceAll("_"," ")
+        .replace(/\b\w/g,char => char.toUpperCase());
+}
+
+async function readJson(response){
+    const text = await response.text();
+
+    try{
+        return JSON.parse(text);
+    }catch{
+        throw new Error(
+            text ||
+            `Server returned HTTP ${response.status}.`
+        );
+    }
+}
+
+/* -------------------------
+   Result
+------------------------- */
+
+function renderResult(data){
+
+    const original = data.original_summary || {};
+    const final = data.final_summary || {};
+
+    const total =
+        pick(final,"total_rules","total", "total_clauses") ??
+        pick(original,"total_rules","total","total_clauses") ??
+        "—";
+
+    const passed =
+        pick(final,"passed","passed_rules","passed_count") ??
+        "—";
+
+    const failed =
+        pick(final,"failed","failed_rules","failed_count") ??
+        "—";
+
+    const risk =
+        pick(final,"risk","overall_risk","risk_level") ??
+        "—";
+
+    document.getElementById("totalClauses").textContent = total;
+    document.getElementById("highRisk").textContent = "—";
+    document.getElementById("mediumRisk").textContent = "—";
+    document.getElementById("lowRisk").textContent = passed;
+    document.getElementById("overallRisk").textContent =
+        String(risk).toUpperCase();
+
+    renderCorrections(data.corrections || []);
+
+    const downloads = data.downloads || {};
+
+    document.getElementById("correctedButton").onclick = ()=>{
+        if(downloads.corrected_nda)
+            window.open(API_BASE + downloads.corrected_nda,"_blank");
+    };
+
+    document.getElementById("reportButton").onclick = ()=>{
+        if(downloads.analysis_report)
+            window.open(API_BASE + downloads.analysis_report,"_blank");
+    };
+}
+
+function pick(obj,...keys){
+    for(const key of keys){
+        if(obj[key] !== undefined && obj[key] !== null)
+            return obj[key];
+    }
+    return null;
+}
+
+function renderCorrections(corrections){
+
+    const body = document.getElementById("correctionsBody");
+    body.innerHTML = "";
+
+    if(!corrections.length){
+        body.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    No correction records returned.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    corrections.slice(0,5).forEach(item=>{
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${escapeHtml(
+                item.clause_id || item.rule_id || "—"
+            )}</td>
+
+            <td>${escapeHtml(
+                item.original_clause ||
+                item.original ||
+                item.clause ||
+                "—"
+            )}</td>
+
+            <td>${escapeHtml(
+                item.issue ||
+                item.reason ||
+                "—"
+            )}</td>
+
+            <td>
+                <span class="risk-badge">
+                    ${escapeHtml(
+                        item.risk ||
+                        item.risk_level ||
+                        "—"
+                    )}
+                </span>
+            </td>
+
+            <td>${escapeHtml(
+                item.correction ||
+                item.correction_made ||
+                item.change ||
+                "—"
+            )}</td>
+
+            <td>
+                <button class="view-button">
+                    View All Corrections
+                </button>
+            </td>
+        `;
+
+        body.appendChild(row);
+    });
+}
+
+/* -------------------------
+   Q&A
+------------------------- */
+
+document.getElementById("askButton").addEventListener(
+    "click",
+    askLaura
+);
+
+async function askLaura(){
+
+    const question =
+        document.getElementById("question").value.trim();
+
+    const answer =
+        document.getElementById("answer");
+
+    if(!analysisId){
+        showToast(
+            "Please complete an NDA analysis first.",
+            true
+        );
+        return;
+    }
+
+    if(!question){
+        showToast("Enter a question for LAURA.",true);
+        return;
+    }
+
+    const button =
+        document.getElementById("askButton");
+
+    button.disabled = true;
+    button.textContent = "LAURA is thinking...";
+
+    answer.classList.add("show");
+    answer.textContent =
+        "LAURA is analyzing your question...";
+
+    try{
+
+        const response = await fetch(
+            `${API_BASE}/qa/ask`,
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify({
+                    analysis_id:analysisId,
+                    question
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if(!response.ok)
+            throw new Error(
+                data.detail || "Q&A request failed."
+            );
+
+        answer.textContent =
+            data.answer || "No answer returned.";
+
+    }catch(error){
+
+        answer.textContent =
+            `LAURA could not answer: ${error.message}`;
+
+    }finally{
+
+        button.disabled = false;
+        button.textContent = "Ask LAURA →";
+    }
+}
+
+/* -------------------------
+   Helpers
+------------------------- */
+
+function escapeHtml(value){
+    return String(value)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+}
+
+function showToast(message,error=false){
+
+    const toast = document.getElementById("toast");
+
+    toast.textContent = message;
+    toast.classList.toggle("error",error);
+    toast.classList.add("show");
+
+    setTimeout(()=>{
+        toast.classList.remove("show");
+    },3500);
+}
+
+document.getElementById("heroImage").addEventListener(
+    "error",
+    ()=>{
+        showToast(
+            "LAURA image not found. Keep laura.png in assets.",
+            true
+        );
+    }
+);
+</script>
+
+</body>
+</html>

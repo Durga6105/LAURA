@@ -1,0 +1,53 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Generated analysis files
+output/
+outputs/
+generated/
+reports/
+
+# Uploaded NDA documents
+*.pdf
+*.docx
+
+# Local databases / vector stores
+chroma/
+chroma_db/
+*.db
+
+# Cache
+.cache/
+.pytest_cache/
+
+# Streamlit
+.streamlit/secrets.toml
